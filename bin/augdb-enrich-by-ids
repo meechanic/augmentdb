@@ -4,12 +4,12 @@ import json
 import yaml
 import csv
 import argparse
-from handystuff import eprint_exception, eprint, enrich_by_ids, sepval_load, sepval_dump
+from augmentdb import eprint_exception, eprint, enrich_by_ids, sepval_load, sepval_dump
 from io import StringIO
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Get element(s) from richdb")
+    parser = argparse.ArgumentParser(description="Get element(s) from augmentdb")
     parser.add_argument("-i", "--input-file", type=str, help="Input file (stdin if not specified)")
     parser.add_argument("-if", "--input-format", type=str, help="Input file format (json by default)")
     parser.add_argument("--in-header", help="Input header spec")

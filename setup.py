@@ -2,13 +2,13 @@
 
 from distutils.core import setup
 
-setup(name='handystuff',
+setup(name='augmentdb',
   version='0.0.1',
-  description='Handy Stuff',
-  author='Anybody Anybody',
-  author_email='anybody@example.com',
-  url='https://www.example.com',
+  description='AugmentDB',
+  author='Mikhail Efremov',
+  author_email='meechanic.design@gmail.com',
+  url='https://github.com/meechanic',
   license="MIT",
-  scripts=['bin/teststring.py'],
-  packages=['handystuff']
+  scripts=['bin/augdb-enrich', 'bin/augdb-enrich-by-ids', 'bin/augdb-get', 'bin/augdb-ls', 'bin/augdb-objmerge', 'bin/augdb-objmerge-with-db', 'bin/augdb-stat'],
+  packages=['augmentdb']
 )

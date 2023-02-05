@@ -65,7 +65,7 @@ def objmerge(input_obj1, input_obj2):
     return input_obj1
 
 
-def richdb_get(input_obj, key, value, all):
+def augmentdb_get(input_obj, key, value, all):
     ret = None
     if all == True:
         ret = []

@@ -4,14 +4,14 @@ import json
 import yaml
 import csv
 import argparse
-from handystuff import eprint_exception, eprint, objmerge, richdb_get, sepval_load, sepval_dump
+from augmentdb import eprint_exception, eprint, objmerge, sepval_load, sepval_dump
 from io import StringIO
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Merge single object form first argument with richdb record from second argument")
+    parser = argparse.ArgumentParser(description="Merge two single objects")
     parser.add_argument("-i1", "--input-file1", type=str, help="Input file 1 (stdin if not specified)")
-    parser.add_argument("-i2", "--input-file2", type=str, help="Input file 2 (.richdb in current directory by default)")
+    parser.add_argument("-i2", "--input-file2", type=str, help="Input file 2 (.augmentdb in current directory by default)")
     parser.add_argument("-if1", "--input-format1", type=str, help="Input file 1 format (json by default)")
     parser.add_argument("-if2", "--input-format2", type=str, help="Input file 2 format (json by default)")
     parser.add_argument("--in-header1", help="Input 1 header spec")
@@ -20,8 +20,6 @@ def main():
     parser.add_argument("--in-with-header2", help="Input data 2 already has a header")
     parser.add_argument("-d1", "--delimiter1", type=str, help="Delimiter in 1st file and in output")
     parser.add_argument("-d2", "--delimiter2", type=str, help="Delimiter in 2d file")
-    parser.add_argument("-k1", "--key1", type=str, help="Key field name in the 1st file (\"name\" by default)")
-    parser.add_argument("-k2", "--key2", type=str, help="Key field name in the 2d (richdb) file (\"name\" by default)")
     parser.add_argument("-o", "--output-file", type=str, help="Output file (stdout if not specified)")
     parser.add_argument("-of", "--output-format", type=str, help="Output format (json by default)")
     #parser.add_argument("-w", "--how", type=str, help="How to join")
@@ -44,7 +42,7 @@ def main():
             eprint_exception(e, print_traceback=print_traceback)
     else:
         try:
-            inp_f2 = open(".richdb", "r")
+            inp_f2 = open(".augmentdb", "r")
         except Exception as e:
             eprint_exception(e, print_traceback=print_traceback)
     if args.output_file != None:
@@ -104,20 +102,8 @@ def main():
             input_obj2 = sepval_load(inp_f1, args.in_with_header2, args.delimiter2, prepared_header, "list")
     except Exception as e:
         eprint_exception(e, print_traceback=print_traceback)
-
-    if args.key1 != None:
-        key1 = args.key1
-    else:
-        key1 = "name"
-    if args.key2 != None:
-        key2 = args.key2
-    else:
-        key2 = "name"
-
-    richdb_obj = richdb_get(input_obj2, key2, input_obj1[key1], False)
-    if richdb_obj == None:
-        richdb_obj = {}
-    output_obj = objmerge(input_obj1, richdb_obj)
+    
+    output_obj = objmerge(input_obj1, input_obj2)
 
     try:
         if output_format == "json":
