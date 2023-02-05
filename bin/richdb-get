@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+import sys
+import json
+import yaml
+import csv
+import argparse
+from handystuff import eprint_exception, eprint, richdb_get, sepval_load, sepval_dump
+from io import StringIO
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Get element(s) from richdb")
+    parser.add_argument("-i", "--input-file", type=str, help="Input file (stdin if not specified)")
+    parser.add_argument("-if", "--input-format", type=str, help="Input file format (json by default)")
+    parser.add_argument("--in-header", help="Input header spec")
+    parser.add_argument("--in-with-header", help="Input data already has a header")
+    parser.add_argument("-d", "--delimiter", type=str, help="Delimiter in the input and in the output")
+    parser.add_argument("-k", "--key", type=str, help="Key field name to filter (\"name\" by default)")
+    parser.add_argument("-v", "--value", type=str, help="Key field value to filter", required=True)
+    parser.add_argument("-of", "--output-format", type=str, help="Output format (json by default)")
+    parser.add_argument("--out-no-header", action="store_true", help="Dont't print header")
+    parser.add_argument("--out-no-data", action="store_true", help="Don't print data")
+    parser.add_argument("--all", action="store_true", help="Get list of all occurencies instead of first")
+    args = parser.parse_args()
+
+    print_traceback=True
+    if args.input_file != None:
+        try:
+            inp_f = open(args.input_file, "r")
+        except Exception as e:
+            eprint_exception(e, print_traceback=print_traceback)
+    else:
+        inp_f = sys.stdin
+
+    input_format = "json"
+    if args.input_format != None:
+        input_format = args.input_format.lower()
+    if input_format not in [ "json", "yaml", "sv"]:
+        eprint("Unsupported input format: {}".format(input_format))
+        exit(1)
+    output_format = "json"
+    if args.output_format != None:
+        output_format = args.output_format.lower()
+    if output_format not in [ "json", "yaml", "sv"]:
+        eprint("Unsupported output format: {}".format(output_format))
+        exit(1)
+
+    input_obj = None
+    try:
+        if input_format == "json":
+            input_obj = json.load(inp_f)
+        if input_format == "yaml":
+            input_obj = yaml.safe_load(inp_f)
+        if input_format == "sv":
+            prepared_header = None
+            if args.in_header != None:
+                f = StringIO(args.in_header)
+                h_reader = csv.reader(f, delimiter=",")
+                prepared_header = next(h_reader)
+            input_obj = sepval_load(inp_f, args.in_with_header1, args.delimiter, prepared_header, "list")
+    except Exception as e:
+        eprint_exception(e, print_traceback=print_traceback)
+
+    if args.key != None:
+        key = args.key
+    else:
+        key = "name"
+    
+    output_obj = richdb_get(input_obj, key, args.value, args.all)
+
+    out_f = sys.stdout
+    try:
+        if output_format == "json":
+            json.dump(output_obj, out_f, indent=4, ensure_ascii=False)
+        if output_format == "yaml":
+            yaml.dump(output_obj, out_f, default_flow_style=False, allow_unicode=True)
+        if output_format == "sv":
+            sepval_dump(output_obj, out_f, args.delimiter, args.out_no_header, args.out_no_data)
+    except Exception as e:
+        eprint_exception(e, print_traceback=print_traceback)
+
+    if args.input_file != None:
+        inp_f.close()
+
+
+if __name__ == "__main__":
+    main()

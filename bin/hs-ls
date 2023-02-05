@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+import os
+import sys
+import json
+import yaml
+import csv
+import argparse
+from handystuff import ls, eprint, eprint_exception, sepval_load, enrich
+from io import StringIO
+
+
+def main():
+    parser = argparse.ArgumentParser(description="List files and directories")
+    parser.add_argument("-p", "--path", type=str, help="Path to list")
+    parser.add_argument("-t", "--detalization", type=str, help="Detalization of output")
+    parser.add_argument("-r", "--richdb", default='.richdb', type=str, help="Path to richdb file to enrich the initial data, default: .richdb")
+    parser.add_argument("-if", "--input-format", type=str, help="Input file format (json by default)")
+    parser.add_argument("-k", "--key", type=str, help="Key field name in the input richdb (\"name\" by default)")
+    parser.add_argument("--in-header", help="Input header spec")
+    parser.add_argument("--in-with-header", help="Input data already has a header")
+    parser.add_argument("-d", "--delimiter", type=str, help="Delimiter in the input and in the output")
+    parser.add_argument("-y", "--type", type=str, help="Type of files: dir | nondir")
+    parser.add_argument("-g", "--glob", type=str, help="Glob pattern for files")
+    parser.add_argument("-w", "--how", type=str, help="How to join")
+    args = parser.parse_args()
+
+    print_traceback=False
+    if args.path == None:
+        path = os.getcwd()
+    else:
+        path = args.path
+
+    ls_data = ls(path, args)
+    if args.richdb:
+        richdb_obj = []
+        inp_f = None
+        try:
+            inp_f = open(args.richdb, "r")
+        except Exception:
+            pass
+        if inp_f:
+            input_format = "json"
+            if args.input_format != None:
+                input_format = args.input_format.lower()
+            if input_format not in ["json", "yaml", "sv"]:
+                eprint("Unsupported input format: {}".format(input_format))
+                exit(1)
+            try:
+                if input_format == "json":
+                    richdb_obj = json.load(inp_f)
+                if input_format == "yaml":
+                    richdb_obj = yaml.safe_load(inp_f)
+                if input_format == "sv":
+                    prepared_header = None
+                    if args.in_header != None:
+                        f = StringIO(args.in_header)
+                        h_reader = csv.reader(f, delimiter=",")
+                        prepared_header = next(h_reader)
+                    richdb_obj = sepval_load(inp_f, args.in_with_header1, args.delimiter, prepared_header, "list")
+            except Exception as e:
+                eprint_exception(e, print_traceback=print_traceback)
+            if richdb_obj != None and richdb_obj != []:
+                if args.key != None:
+                    key = args.key
+                else:
+                    key = "name"
+                if args.how != None:
+                    how = args.how
+                else:
+                    how = "outer"
+                ls_data = enrich(ls_data, richdb_obj, "name", key, how)
+    try:
+        json.dump(ls_data, sys.stdout, indent=4, ensure_ascii=False)
+    except Exception as e:
+        eprint_exception(e, print_traceback=print_traceback)
+
+
+if __name__ == "__main__":
+    main()

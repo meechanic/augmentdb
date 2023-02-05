@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+import sys
+import json
+import yaml
+import csv
+import argparse
+from handystuff import eprint_exception, eprint, objmerge, sepval_load, sepval_dump
+from io import StringIO
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Merge two single objects")
+    parser.add_argument("-i1", "--input-file1", type=str, help="Input file 1 (stdin if not specified)")
+    parser.add_argument("-i2", "--input-file2", type=str, help="Input file 2 (.richdb in current directory by default)")
+    parser.add_argument("-if1", "--input-format1", type=str, help="Input file 1 format (json by default)")
+    parser.add_argument("-if2", "--input-format2", type=str, help="Input file 2 format (json by default)")
+    parser.add_argument("--in-header1", help="Input 1 header spec")
+    parser.add_argument("--in-header2", help="Input 2 header spec")
+    parser.add_argument("--in-with-header1", help="Input data 1 already has a header")
+    parser.add_argument("--in-with-header2", help="Input data 2 already has a header")
+    parser.add_argument("-d1", "--delimiter1", type=str, help="Delimiter in 1st file and in output")
+    parser.add_argument("-d2", "--delimiter2", type=str, help="Delimiter in 2d file")
+    parser.add_argument("-o", "--output-file", type=str, help="Output file (stdout if not specified)")
+    parser.add_argument("-of", "--output-format", type=str, help="Output format (json by default)")
+    #parser.add_argument("-w", "--how", type=str, help="How to join")
+    parser.add_argument("--out-no-header", action="store_true", help="Dont't print header")
+    parser.add_argument("--out-no-data", action="store_true", help="Don't print data")
+    args = parser.parse_args()
+
+    print_traceback=True
+    if args.input_file1 != None:
+        try:
+            inp_f1 = open(args.input_file1, "r")
+        except Exception as e:
+            eprint_exception(e, print_traceback=print_traceback)
+    else:
+        inp_f1 = sys.stdin
+    if args.input_file2 != None:
+        try:
+            inp_f2 = open(args.input_file2, "r")
+        except Exception as e:
+            eprint_exception(e, print_traceback=print_traceback)
+    else:
+        try:
+            inp_f2 = open(".richdb", "r")
+        except Exception as e:
+            eprint_exception(e, print_traceback=print_traceback)
+    if args.output_file != None:
+        try:
+            out_f = open(args.output_file, "w+")
+        except Exception as e:
+            eprint_exception(e, print_traceback=print_traceback)
+    else:
+        out_f = sys.stdout
+
+    input_format1 = "json"
+    if args.input_format1 != None:
+        input_format1 = args.input_format1.lower()
+    if input_format1 not in [ "json", "yaml", "sv"]:
+        eprint("Unsupported input format: {}".format(input_format1))
+        exit(1)
+    input_format2 = "json"
+    if args.input_format2 != None:
+        input_format2 = args.input_format2.lower()
+    if input_format2 not in [ "json", "yaml", "sv"]:
+        eprint("Unsupported input format: {}".format(input_format1))
+        exit(1)
+    output_format = "json"
+    if args.output_format != None:
+        output_format = args.output_format.lower()
+    if output_format not in [ "json", "yaml", "sv"]:
+        eprint("Unsupported output format: {}".format(output_format))
+        exit(1)
+
+    input_obj1 = None
+    input_obj2 = None
+    try:
+        if input_format1 == "json":
+            input_obj1 = json.load(inp_f1)
+        if input_format1 == "yaml":
+            input_obj1 = yaml.safe_load(inp_f1)
+        if input_format1 == "sv":
+            prepared_header = None
+            if args.in_header1 != None:
+                f = StringIO(args.in_header1)
+                h_reader = csv.reader(f, delimiter=",")
+                prepared_header = next(h_reader)
+            input_obj1 = sepval_load(inp_f1, args.in_with_header1, args.delimiter1, prepared_header, "list")
+    except Exception as e:
+        eprint_exception(e, print_traceback=print_traceback)
+    try:
+        if input_format2 == "json":
+            input_obj2 = json.load(inp_f2)
+        if input_format2 == "yaml":
+            input_obj2 = yaml.safe_load(inp_f2)
+        if input_format2 == "sv":
+            prepared_header = None
+            if args.in_header2 != None:
+                f = StringIO(args.in_header2)
+                h_reader = csv.reader(f, delimiter=",")
+                prepared_header = next(h_reader)
+            input_obj2 = sepval_load(inp_f1, args.in_with_header2, args.delimiter2, prepared_header, "list")
+    except Exception as e:
+        eprint_exception(e, print_traceback=print_traceback)
+    
+    output_obj = objmerge(input_obj1, input_obj2)
+
+    try:
+        if output_format == "json":
+            json.dump(output_obj, out_f, indent=4, ensure_ascii=False)
+        if output_format == "yaml":
+            yaml.dump(output_obj, out_f, default_flow_style=False, allow_unicode=True)
+        if output_format == "sv":
+            sepval_dump(output_obj, out_f, args.delimiter1, args.out_no_header, args.out_no_data)
+    except Exception as e:
+        eprint_exception(e, print_traceback=print_traceback)
+
+    if args.input_file1 != None:
+        inp_f1.close()
+    inp_f2.close()
+    if args.output_file != None:
+        out_f.close()
+
+
+if __name__ == "__main__":
+    main()
