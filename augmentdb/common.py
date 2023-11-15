@@ -53,10 +53,16 @@ def pd_obj_transform(obj, keyname):
     return ret
 
 
-def enrich(input_obj1, input_obj2, key1="name", key2="name", how="outer"):
+'''def enrich(input_obj1, input_obj2, key1="name", key2="name", how="outer"):
     inp_df1 = pd.DataFrame(input_obj1).set_index(key1)
     inp_df2 = pd.DataFrame(input_obj2).set_index(key2)
-    return pd_obj_transform(inp_df1.merge(inp_df2, left_index=True, right_index=True, how=how).T.to_dict(), key1)
+    return pd_obj_transform(inp_df1.merge(inp_df2, left_index=True, right_index=True, how=how).T.to_dict(), key1)'''
+
+
+def enrich(input_obj1, input_obj2, key1="name", key2="name", how="outer"):
+    inp_df1 = pd.DataFrame(input_obj1)
+    inp_df2 = pd.DataFrame(input_obj2)
+    return inp_df1.merge(inp_df2, left_on=key1, right_on=key2, how=how).to_dict(orient='records')
 
 
 def objmerge(input_obj1, input_obj2):
